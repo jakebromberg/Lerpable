@@ -1,0 +1,55 @@
+# General
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Icon must end with two \r
+Icon
+
+# Thumbnails
+._*
+
+# Files that might appear in the root of a volume
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+
+# Directories potentially created on external discs
+.Spotlight-V100
+.Trashes
+
+# Xcode
+## User settings
+xcuserdata/
+
+## Compatibility
+*.mode1v3
+*.mode2v3
+*.perspectivev3
+*.pbuser
+*.xccheckout
+*.moved-aside
+*.xcuserstate
+*.xcscmblueprint
+
+## Build generated
+build/
+DerivedData/
+*.hmap
+*.ipa
+*.pkg
+
+## Playgrounds
+timeline.xctimeline
+playground.xcworkspace
+
+# Swift Package Manager
+.build/
+.swiftpm/
+
+# CocoaPods
+Pods/
