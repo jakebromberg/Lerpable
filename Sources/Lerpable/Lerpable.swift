@@ -71,6 +71,23 @@ extension SIMD2: Lerpable where Scalar: BinaryFloatingPoint {}
 extension SIMD3: Lerpable where Scalar: BinaryFloatingPoint {}
 extension SIMD4: Lerpable where Scalar: BinaryFloatingPoint {}
 
+// MARK: - Discrete Type Conformances
+
+extension Bool: Lerpable {
+    /// Booleans use stepped interpolation — switches at t = 0.5
+    public static func lerp(_ a: Bool, _ b: Bool, t: Double) -> Bool {
+        t < 0.5 ? a : b
+    }
+}
+
+extension Array: Lerpable {
+    /// Arrays use stepped interpolation — switches at t = 0.5
+    /// (element-wise blending doesn't make sense for arbitrary arrays)
+    public static func lerp(_ a: Array, _ b: Array, t: Double) -> Array {
+        t < 0.5 ? a : b
+    }
+}
+
 // MARK: - Macro Declaration
 
 /// Automatically generates `Lerpable` conformance for a struct.

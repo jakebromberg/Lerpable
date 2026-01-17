@@ -4,6 +4,8 @@
 //
 //  Macro implementation that generates Lerpable conformance by inspecting
 //  stored properties and generating a lerp function that interpolates each.
+//  Properties marked with @Stepped use threshold-based switching instead
+//  of linear interpolation.
 //
 //  Created by Jake Bromberg on 01/15/26.
 //  Copyright © 2026 WXYC. All rights reserved.
@@ -38,9 +40,13 @@ public struct LerpableMacro: ExtensionMacro {
                 return nil
             }
 
+            // Check for @Stepped attribute and extract threshold
+            let steppedThreshold = extractSteppedThreshold(from: varDecl)
+
             return StoredProperty(
                 name: identifier.identifier.text,
-                type: binding.typeAnnotation?.type
+                type: binding.typeAnnotation?.type,
+                steppedThreshold: steppedThreshold
             )
         }
 
@@ -50,7 +56,13 @@ public struct LerpableMacro: ExtensionMacro {
 
         // Generate the lerp function body
         let propertyLerps = storedProperties.map { prop in
-            "\(prop.name): .lerp(a.\(prop.name), b.\(prop.name), t: t)"
+            if let threshold = prop.steppedThreshold {
+                // Stepped interpolation: switch at threshold
+                return "\(prop.name): t < \(threshold) ? a.\(prop.name) : b.\(prop.name)"
+            } else {
+                // Linear interpolation
+                return "\(prop.name): .lerp(a.\(prop.name), b.\(prop.name), t: t)"
+            }
         }.joined(separator: ",\n                ")
 
         let extensionDecl: DeclSyntax = """
@@ -64,6 +76,33 @@ public struct LerpableMacro: ExtensionMacro {
             """
 
         return [extensionDecl.cast(ExtensionDeclSyntax.self)]
+    }
+
+    /// Extracts the threshold value from a @Stepped attribute, if present.
+    /// - Returns: The threshold value, or nil if no @Stepped attribute is found.
+    private static func extractSteppedThreshold(from varDecl: VariableDeclSyntax) -> Double? {
+        for attribute in varDecl.attributes {
+            guard let attr = attribute.as(AttributeSyntax.self),
+                  let identifier = attr.attributeName.as(IdentifierTypeSyntax.self),
+                  identifier.name.text == "Stepped"
+            else { continue }
+
+            // Extract threshold argument if present
+            if let args = attr.arguments?.as(LabeledExprListSyntax.self),
+               let first = args.first,
+               first.label?.text == "threshold" {
+                // Handle both float and integer literals
+                if let floatLiteral = first.expression.as(FloatLiteralExprSyntax.self) {
+                    return Double(floatLiteral.literal.text)
+                } else if let intLiteral = first.expression.as(IntegerLiteralExprSyntax.self) {
+                    return Double(intLiteral.literal.text)
+                }
+            }
+
+            // Default threshold if no argument provided
+            return 0.5
+        }
+        return nil
     }
 
     private static func hasComputedAccessor(_ binding: PatternBindingSyntax) -> Bool {
@@ -90,6 +129,7 @@ public struct LerpableMacro: ExtensionMacro {
 private struct StoredProperty {
     let name: String
     let type: TypeSyntax?
+    let steppedThreshold: Double?  // nil = linear, Some = stepped
 }
 
 enum LerpableMacroError: Error, CustomStringConvertible {
@@ -112,5 +152,6 @@ enum LerpableMacroError: Error, CustomStringConvertible {
 struct LerpablePlugin: CompilerPlugin {
     let providingMacros: [Macro.Type] = [
         LerpableMacro.self,
+        SteppedMacro.self,
     ]
 }

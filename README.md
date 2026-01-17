@@ -2,7 +2,7 @@
 
 A Swift library and macro for seamless linear interpolation.
 
-`Lerpable` provides a protocol and a macro to easily enable linear interpolation for your custom types. It comes with built-in support for standard Swift types like `Double`, `Float`, `CGFloat`, `Int`, and `SIMD` vectors.
+`Lerpable` provides a protocol and a macro to easily enable linear interpolation for your custom types. It comes with built-in support for standard Swift types like `Double`, `Float`, `CGFloat`, `Int`, `SIMD` vectors, `Bool`, and `Array`.
 
 ## Installation
 
@@ -35,6 +35,33 @@ let end = Point(x: 10, y: 20)
 // Interpolate halfway
 let mid = Point.lerp(start, end, t: 0.5) 
 // Result: Point(x: 5.0, y: 10.0)
+```
+
+### Stepped Interpolation with `@Stepped`
+
+For properties that shouldn't interpolate smoothly—like booleans, enums, or discrete values—use the `@Stepped` macro. These properties switch from `a` to `b` at a configurable threshold instead of blending.
+
+```swift
+@Lerpable
+struct RFNoiseParams {
+    var whiteMix: Float                            // Linear: 0.0 → 1.0 smoothly
+    @Stepped(threshold: 0.5) var pinkOctaves: Int  // Stepped: switches at t=0.5
+    @Stepped(threshold: 0.3) var stereoEnabled: Bool // Switches earlier at t=0.3
+}
+
+let a = RFNoiseParams(whiteMix: 0, pinkOctaves: 8, stereoEnabled: false)
+let b = RFNoiseParams(whiteMix: 1, pinkOctaves: 12, stereoEnabled: true)
+
+let mid = RFNoiseParams.lerp(a, b, t: 0.4)
+// mid.whiteMix == 0.4 (interpolated)
+// mid.pinkOctaves == 8 (not yet at 0.5 threshold)
+// mid.stereoEnabled == true (past 0.3 threshold)
+```
+
+The default threshold is `0.5` if not specified:
+
+```swift
+@Stepped var discrete: Int  // Switches at t=0.5
 ```
 
 ### Recursive Conformance
@@ -94,3 +121,5 @@ struct Angle: Lerpable {
 - **Floating Point**: `Double`, `Float`, `CGFloat`, `Float80` (x86_64)
 - **Integers**: `Int`, `Int8`...`Int64`, `UInt`...`UInt64`
 - **SIMD**: `SIMD2`, `SIMD3`, `SIMD4` (where Scalar is BinaryFloatingPoint)
+- **Discrete**: `Bool`, `Array` (use stepped interpolation, switching at t=0.5)
+
